@@ -1,0 +1,7 @@
+{
+  "name": "Scribbler",
+  "description": "Climb to the top!",
+  "repository": "https://github.com/BradNicolle/Scribbler",
+  "logo": "http://node-js-sample.herokuapp.com/node.svg",
+  "keywords": ["node", "express", "scribbler", "whiteboard", "game", "multiplayer", "socket.io"]
+}
