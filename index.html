@@ -3,7 +3,6 @@
 <head>
 	<title>Scribbler</title>
 	<script src="/socket.io/socket.io.js"></script>
-	<script src="/scripts/game.js"></script>
 	<link href="//fonts.googleapis.com/css?family=Lobster" rel="stylesheet" type="text/css">
 </head>
 
@@ -14,19 +13,9 @@
 	Scribbler
 </div>
 
-<div id="controlPanel" style="position: absolute; z-index: 2; right: 10px; top: 10px; font-family: sans-serif; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; background-color: white; border: 1px solid lightgray; padding: 5px; box-shadow: 2px 2px 2px lightgray;">
-	<div id="counter" >
-		<div id="counter_text" style="font-size: 28pt; text-align: center;">
-			0
-		</div>
-		<div>
-			users online
-		</div>
-	</div>
+<div id="status" style="position: absolute; width: 20%; height: 20%; top: 0; left: 0; z-index: 2; margin: 10px; font-family: sans-serif; font-weight: bold; font-size: 22pt;"></div>
 
-	<div id="eventBox" style="position: absolute; top: 10px; right: 100px;"></div>
-	<button id="clearButton" style="color: red; background-color: white; border: 1px solid black; font-size: 22pt; width: 100%; margin-top: 20px;" onClick="clearHandler()">Clear</button>
-</div>
+<script src="/scripts/game.js"></script>
 
 </body>
 

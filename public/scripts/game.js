@@ -1,136 +1,108 @@
 var socket = io();
 
+var RADIUS = 50;
+
 var canvas;
 var ctx;
-var colour = "black";
+var id = "";
 
 var down = false;
 var prevX, prevY;
+var x = 0, y = 0;
 
-var userMap = {};
+var user_pos = {};
+var lines = [];
 
-function onLoad() {
 
-	canvas = document.getElementById("theCanvas");
-	canvas.width = window.innerWidth;
-	canvas.height = window.innerHeight;
+canvas = document.getElementById("theCanvas");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
-	ctx = canvas.getContext("2d");
+ctx = canvas.getContext("2d");
 
-//	ctx.moveTo(0, 0);
+socket.on('init', function(msg) {
+	console.log("ID RECEIVED: " + msg);
+	id = msg;
+});
 
-	socket.on('colour', function(msg) {
-		colour = msg;
-	});
+socket.on('pos', function(msg) {
+	user_pos = msg;
+	x = user_pos[id].x;
+	y = user_pos[id].y;
+});
 
-	socket.on('init', function(msg) {
-		ctx.beginPath();
-		for (i in msg) {
-			console.log("=== " + msg[i].x + " " + msg[i].y + " " + msg[i].released);
-			if (msg[i].released) {
-				pathRelease(msg[i]);
-			}
-			else {
-				pathMove(msg[i]);
-			}
-		}
-	});
+addEventListener("mousemove", moveHandler, true);
+addEventListener("keydown", keyDownHandler, true);
 
-	socket.on('move', pathMove);
+animLoop();
 
-	socket.on('clear', clearBoard);
-
-	socket.on('users', function(msg) {
-		document.getElementById("counter_text").innerText = msg;
-	});
-
-	socket.on('release', pathRelease);
-
-	addEventListener("mousedown", downHandler, true);
-	addEventListener("touchstart", downHandler, true);
-	addEventListener("mouseup", upHandler, true);
-	addEventListener("touchend", upHandler, true);
-	addEventListener("mousemove", moveHandler, true);
-	addEventListener("touchmove", moveHandler, true);
-}
-
-function pathMove(msg) {
-	if (userMap[msg.id] == null) {
-		ctx.beginPath();
-	}
-	else {
-		var user = userMap[msg.id];
-		ctx.moveTo(user.x, user.y);
-	}
-	userMap[msg.id] = msg;
-	ctx.lineTo(msg.x, msg.y);
-	ctx.stroke();
-}
-
-function pathRelease(msg) {
-	if (msg.id in userMap) {
-		userMap[msg.id] = null;
-	}
-}
-
-function clearHandler() {
-	clearBoard();
-	socket.emit('clear');
-}
-
-function clearBoard() {
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	userMap = {};
-	ctx.beginPath();
-}
-
-function downHandler(e) {
-//	document.getElementById("eventBox").innerText = "down " + e.type;
-	var x, y;
-	if (e.type == "touchstart") {
-		x = e.changedTouches[0].pageX;
-		y = e.changedTouches[0].pageY;
-	}
-	else {
-		x = e.pageX;
-		y = e.pageY;
-	}
-	prevX = x;
-	prevY = y;
-	ctx.moveTo(x, y);
-	down = true;
-	e.preventDefault();
-}
-
-function upHandler(e) {
-//	document.getElementById("eventBox").innerText = "up " + e.type;
-	down = false;
-	socket.emit('release');
-	e.preventDefault();
-}
 
 function moveHandler(e) {
-//	document.getElementById("eventBox").innerText = "move " + e.type;
-	var x, y;
-	if (e.type == "touchmove") {
-		x = e.changedTouches[0].pageX;
-		y = e.changedTouches[0].pageY;
-	}
-	else {
-		x = e.pageX;
-		y = e.pageY;
-	}
-	if (down) {
-			// Necessary to move context in case someone else is drawing at same time as us
-			ctx.moveTo(prevX, prevY);
-			ctx.lineTo(x, y);
-			ctx.stroke();
+	socket.emit('mousePos', {x: e.pageX, y: e.pageY});
+}
 
-			var jsonData = {x: x, y: y};
-			prevX = x;
-			prevY = y;
-
-			socket.emit('move', jsonData);
+function keyDownHandler(event) {
+	// Space == 32
+	if (event.keyCode == 32) {
+		socket.emit('jump');
 	}
-	e.preventDefault();
+	return false;
+}
+
+function drawBall(ball_x, ball_y) {
+  ctx.beginPath();
+  ctx.arc(ball_x, ball_y, RADIUS, 0, 2 * Math.PI, false);
+  ctx.fillStyle = "lightBlue";
+  //ctx.fillStyle = collided ? 'red' : 'blue';
+  ctx.fill();
+  ctx.lineWidth = "5";
+  ctx.strokeStyle = "midnightBlue";
+  ctx.stroke();
+}
+
+function drawStuff() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  var h = window.innerHeight;
+  var y_trans = 0;
+  if (y < h/2) {
+    y_trans = 0;
+  }
+  else {
+    y_trans = (y - h/2);
+  }
+  
+  // Draw lines and other players on height-translated canvas
+  ctx.translate(0, y_trans);
+  // Lines
+  for (var i = 0; i < lines.length; i++) {
+    ctx.beginPath();
+    ctx.moveTo(lines[i].x1, h - lines[i].y1);
+    ctx.lineTo(lines[i].x2, h - lines[i].y2);
+    ctx.strokeStyle = "black";
+    ctx.stroke();
+    ctx.closePath();
+  }
+  // Balls
+  for (var key in user_pos) {
+  	if (key != id) {
+  		drawBall(user_pos[key].x, window.innerHeight - user_pos[key].y);
+  	}
+  }
+  ctx.translate(0, -y_trans);
+  
+  // Draw player's ball absolutely
+  var ball_y = 0;
+  if (y < (window.innerHeight)/2) {
+    ball_y = window.innerHeight - y;
+  }
+  else {
+    ball_y = window.innerHeight / 2;
+  }
+
+  drawBall(x, ball_y);
+}
+
+function animLoop() {
+  requestAnimationFrame(animLoop);
+  drawStuff();
 }
