@@ -70,7 +70,7 @@ function moveHandler(e) {
     var line = new Line(prevX, prevY, e.pageX, y_trans);
     lines.push(line);
     socket.emit('addLine', line);
-    prevX = event.pageX;
+    prevX = e.pageX;
     prevY = y_trans;
   }
   else {
