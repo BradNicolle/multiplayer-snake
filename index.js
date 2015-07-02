@@ -15,7 +15,7 @@ var PERIOD = 20;
 // Game state
 var num_users;
 var user_pos = {};
-var lines = [new Line(0, 0, MAP_WIDTH, 0), new Line(0, 0, 100, 100), new Line(250, 250, 1000, 1000)];
+var lines = [new Line(0, 0, MAP_WIDTH, 0)];
 
 app.set('port', (process.env.PORT || 5000));
 
