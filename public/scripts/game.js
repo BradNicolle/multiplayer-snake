@@ -3,6 +3,7 @@ var socket = io();
 var RADIUS = 50;
 
 var canvas;
+var stat;
 var ctx;
 var id = "";
 
@@ -10,10 +11,13 @@ var down = false;
 var prevX, prevY;
 var x = 0, y = 0;
 
+var max_height = 0;
+
 var user_pos = {};
 var lines = [];
 
 
+stat = document.getElementById("status");
 canvas = document.getElementById("theCanvas");
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
@@ -21,8 +25,9 @@ canvas.height = window.innerHeight;
 ctx = canvas.getContext("2d");
 
 socket.on('init', function(msg) {
-	console.log("ID RECEIVED: " + msg);
-	id = msg;
+	console.log("ID RECEIVED: " + msg.id);
+	id = msg.id;
+	lines = msg.lines;
 });
 
 socket.on('pos', function(msg) {
@@ -31,14 +36,58 @@ socket.on('pos', function(msg) {
 	y = user_pos[id].y;
 });
 
+socket.on('newLine', function(msg) {
+  lines.push(msg);
+});
+
+addEventListener("mousedown", downHandler, true);
+addEventListener("mouseup", upHandler, true);
 addEventListener("mousemove", moveHandler, true);
 addEventListener("keydown", keyDownHandler, true);
 
 animLoop();
 
 
+function downHandler(e) {
+  down = true;
+  
+  prevX = e.pageX;
+  prevY = transMouseY(e.pageY);
+  
+  e.preventDefault();
+}
+
+function upHandler(e) {
+  down = false;
+  prevX = null;
+  prevY = null;
+  e.preventDefault();
+}
+
 function moveHandler(e) {
-	socket.emit('mousePos', {x: e.pageX, y: e.pageY});
+  if (down) {
+    var y_trans = transMouseY(e.pageY);
+    var line = new Line(prevX, prevY, e.pageX, y_trans);
+    lines.push(line);
+    socket.emit('addLine', line);
+    prevX = event.pageX;
+    prevY = y_trans;
+  }
+  else {
+    socket.emit('mousePos', {x: e.pageX, y: e.pageY});
+  }
+}
+
+function transMouseY(mouseY) {
+  var h = window.innerHeight;
+  var y_trans = 0;
+  if (y < h/2) {
+    y_trans = h - mouseY;
+  }
+  else {
+    y_trans = y - (mouseY - h/2);
+  }
+  return y_trans;
 }
 
 function keyDownHandler(event) {
@@ -49,10 +98,10 @@ function keyDownHandler(event) {
 	return false;
 }
 
-function drawBall(ball_x, ball_y) {
+function drawBall(ball_x, ball_y, colour) {
   ctx.beginPath();
   ctx.arc(ball_x, ball_y, RADIUS, 0, 2 * Math.PI, false);
-  ctx.fillStyle = "lightBlue";
+  ctx.fillStyle = colour;
   //ctx.fillStyle = collided ? 'red' : 'blue';
   ctx.fill();
   ctx.lineWidth = "5";
@@ -85,7 +134,12 @@ function drawStuff() {
   // Balls
   for (var key in user_pos) {
   	if (key != id) {
-  		drawBall(user_pos[key].x, window.innerHeight - user_pos[key].y);
+  		drawBall(user_pos[key].x, window.innerHeight - user_pos[key].y, "lightBlue");
+  		var speed = user_pos[key].vx + user_pos[key].vy;
+  		if (speed > 50) {
+	  		user_pos[key].x += user_pos[key].vx/2;
+	  		user_pos[key].y += user_pos[key].vy/2;
+  		}
   	}
   }
   ctx.translate(0, -y_trans);
@@ -99,10 +153,27 @@ function drawStuff() {
     ball_y = window.innerHeight / 2;
   }
 
-  drawBall(x, ball_y);
+  drawBall(x, ball_y, "red");
+}
+
+function updateStatus() {
+	stat.innerText = "Height:\t" + Math.round(y - RADIUS);
+  if (y > max_height) {
+    max_height = y;
+  }
+  stat.innerText += "\nBest:\t" + Math.round(max_height);
 }
 
 function animLoop() {
   requestAnimationFrame(animLoop);
   drawStuff();
+  updateStatus();
+}
+
+// Class declarations
+function Line(x1, y1, x2, y2) {
+  this.x1 = x1;
+  this.y1 = y1;
+  this.x2 = x2;
+  this.y2 = y2;
 }

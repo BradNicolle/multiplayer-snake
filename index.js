@@ -15,7 +15,7 @@ var PERIOD = 20;
 // Game state
 var num_users;
 var user_pos = {};
-var lines = [new Line(0, 0, MAP_WIDTH, 0)];
+var lines = [new Line(0, 0, MAP_WIDTH, 0), new Line(0, 0, 100, 100), new Line(250, 250, 1000, 1000)];
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -34,13 +34,20 @@ io.on('connection', function(socket) {
 	console.log('User id: ' + id);
 	user_pos[id] = {x: INITIAL_X, y: INITIAL_Y, vx: 0, vy: 0, ax: 0, ay: 0, collided: false};
 
-	socket.emit('init', id);
+	socket.emit('init', {id: id, lines: lines});
 
 	socket.on('mousePos', function(msg) {
-		console.log(socket.id + " mousePos: " + msg);
+		//console.log(socket.id + " mousePos: " + msg);
 		var user = user_pos[socket.id];
-    user.vx = -0.01*(user.x - msg.x);
+    user.vx = -0.05*(user.x - msg.x);
 	});
+
+  socket.on('addLine', function(msg) {
+    // Construct new line rather than trusting the given object to be a valid line
+    var line = new Line(msg.x1, msg.y1, msg.x2, msg.y2);
+    lines.push(line);
+    socket.broadcast.emit('newLine', line);
+  });
 
 	socket.on('jump', function(msg) {
 		console.log(socket.id + " jumped");
