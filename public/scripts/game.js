@@ -1,4 +1,4 @@
-//var socket = io();
+var socket = io();
 
 var canvas;
 var stat;
@@ -7,7 +7,7 @@ var id = "";
 
 
 var SEG_LEN = 100; // px
-var snakePoints = []; // Other snakes
+var snakePoints = {}; // Other snakes
 var nodes = []; // My snake
 initSnake(10);
 
@@ -20,7 +20,7 @@ var h = canvas.height;
 
 ctx = canvas.getContext("2d");
 
-/*
+
 socket.on('init', function(msg) {
 	console.log("ID RECEIVED: " + msg.id);
 	id = msg.id;
@@ -28,9 +28,9 @@ socket.on('init', function(msg) {
 });
 
 socket.on('pos', function(msg) {
-	snakePoints = msg.snakePoints;
+	snakePoints = msg;
 });
-*/
+
 
 addEventListener("mousemove", moveHandler, true);
 
@@ -38,14 +38,18 @@ animLoop();
 
 
 function initSnake(len) {
+    // Generate vertical snake of length 'len'
     for (var i = 0; i < len; i++) {
         nodes.push(new Point(0, i*SEG_LEN));
     }
 }
 
 function moveHandler(event) {
+    // Offset for translated canvas origin
     nodes[0].x = event.pageX - w/2;
     nodes[0].y = event.pageY - h/2;
+    
+    // Move each point SEG_LEN px away from preceding point in direction of unit vector
     for (var i = 1; i < nodes.length; i++) {
         var diffX = nodes[i-1].x - nodes[i].x;
         var diffY = nodes[i-1].y - nodes[i].y;
@@ -53,7 +57,9 @@ function moveHandler(event) {
         nodes[i].x = nodes[i-1].x - (diffX / euclid) * SEG_LEN;
         nodes[i].y = nodes[i-1].y - (diffY / euclid) * SEG_LEN;
     }
-    //socket.emit('mousePos', {x: nodes[0].x, y: nodes[0].y});
+    
+    // Send new head location to the server
+    socket.emit('mousePos', nodes[0]);
 }
 
 function drawStuff() {
@@ -64,8 +70,11 @@ function drawStuff() {
     ctx.translate(w/2, h/2);
     
     drawSnake(nodes, 'purple');
-    for (var i = 0; i < snakePoints.length; i++) {
-        drawSnake(snakePoints[i], 'blue');
+    for (var snakeID in snakePoints) {
+        if (snakeID != id) {
+            console.log(snakePoints[snakeID]);
+            drawSnake(snakePoints[snakeID], 'red');
+        }
     }
     
     ctx.translate(-w/2, -h/2);
