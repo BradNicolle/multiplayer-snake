@@ -8,10 +8,14 @@ var MAP_WIDTH = 1920;
 var MAP_HEIGHT = 1080;
 var SEG_LEN = 100;
 var PERIOD = 40;
+var FOOD_FREQ = 5000; // Every 5 seconds on avg
+var FOOD_RADIUS = 10; // px
+var SQ_FOOD_RADIUS = Math.pow(FOOD_RADIUS, 2);
 
 // Game state
 var num_users;
 var snakePoints = {};
+var foodPoints = [];
 
 app.set('port', (process.env.PORT || 5000));
 
@@ -30,7 +34,7 @@ io.on('connection', function(socket) {
 	console.log('User id: ' + id);
     
     snakePoints[id] = [];
-    for (var i = 0; i < 10; i++) {
+    for (var i = 0; i < 5; i++) {
         snakePoints[id].push({x:0, y:i*SEG_LEN});
     }
 	
@@ -39,6 +43,14 @@ io.on('connection', function(socket) {
 	socket.on('mousePos', function(msg) {
         var nodes = snakePoints[socket.id];
         nodes[0] = msg;
+        
+        if (checkEaten(msg)) {
+            var lastNode = nodes[nodes.length - 1];
+            nodes.push({x: lastNode.x, y: lastNode.y});
+            io.emit('food', foodPoints);
+            socket.emit('grow');
+        }
+        
         // Move each point SEG_LEN px away from preceding point in direction of unit vector
         for (var i = 1; i < nodes.length; i++) {
             var diffX = nodes[i-1].x - nodes[i].x;
@@ -58,20 +70,33 @@ io.on('connection', function(socket) {
 });
 
 http.listen(app.get('port'), function() {
-  console.log('Running on port', app.get('port'));
+    console.log('Running on port', app.get('port'));
 });
 
 // Start running simulation!
 setInterval(animLoop, PERIOD);
 
 function animLoop() {
-  io.emit('pos', snakePoints);
+    // Produce food item with avg frequency FOOD_FREQ
+    if (Math.random() < (PERIOD / FOOD_FREQ)) {
+        foodPoints.push({x: Math.random()*MAP_WIDTH - MAP_WIDTH/2, y: Math.random()*MAP_HEIGHT - MAP_HEIGHT/2});
+        io.emit('food', foodPoints);
+    }
+    io.emit('pos', snakePoints);
 }
 
-// Class declarations
-function Line(x1, y1, x2, y2) {
-  this.x1 = x1;
-  this.y1 = y1;
-  this.x2 = x2;
-  this.y2 = y2;
+function checkEaten(headPoint) {
+    // Iterate through all food items and see if the current snake head intersects any
+    // TODO: spatially map food for greater efficiency
+    for (var i = 0; i < foodPoints.length; i++) {
+        var f = foodPoints[i];
+        var sqDist = Math.pow(f.x - headPoint.x, 2) + Math.pow(f.y - headPoint.y, 2);
+        if (sqDist <= SQ_FOOD_RADIUS) {
+            // Delete food item
+            foodPoints.splice(i, 1);
+            return true;
+        }
+    }
+    return false;
 }
+

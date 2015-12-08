@@ -7,9 +7,11 @@ var id = "";
 
 
 var SEG_LEN = 100; // px
+var FOOD_RADIUS = 10; // px
 var snakePoints = {}; // Other snakes
 var nodes = []; // My snake
-initSnake(10);
+var food = [];
+initSnake(5);
 
 stat = document.getElementById("status");
 canvas = document.getElementById("theCanvas");
@@ -19,7 +21,6 @@ var w = canvas.width;
 var h = canvas.height;
 
 ctx = canvas.getContext("2d");
-
 
 socket.on('init', function(msg) {
 	console.log("ID RECEIVED: " + msg.id);
@@ -31,8 +32,18 @@ socket.on('pos', function(msg) {
 	snakePoints = msg;
 });
 
+socket.on('food', function(msg) {
+    food = msg;
+});
 
-addEventListener("mousemove", moveHandler, true);
+socket.on('grow', function(msg) {
+    var lastNode = nodes[nodes.length - 1];
+    nodes.push(new Point(lastNode.x, lastNode.y));
+});
+
+
+addEventListener("mousemove", mouseHandler);
+addEventListener("touchmove", touchHandler);
 
 animLoop();
 
@@ -44,10 +55,19 @@ function initSnake(len) {
     }
 }
 
-function moveHandler(event) {
+function mouseHandler(event) {
+    moveHandler(event.pageX, event.pageY);
+}
+
+function touchHandler(event) {
+    moveHandler(event.touches[0].pageX, event.touches[0].pageY);
+    event.preventDefault();
+}
+
+function moveHandler(x, y) {
     // Offset for translated canvas origin
-    nodes[0].x = event.pageX - w/2;
-    nodes[0].y = event.pageY - h/2;
+    nodes[0].x = x - w/2;
+    nodes[0].y = y - h/2;
     
     // Move each point SEG_LEN px away from preceding point in direction of unit vector
     for (var i = 1; i < nodes.length; i++) {
@@ -69,7 +89,18 @@ function drawStuff() {
     ctx.clearRect(0, 0, w, h);
     ctx.translate(w/2, h/2);
     
+    // Draw all food
+    for (var i = 0; i < food.length; i++) {
+        ctx.beginPath();
+        ctx.arc(food[i].x, food[i].y, FOOD_RADIUS, 0, 2 * Math.PI, false);
+        ctx.fillStyle = 'green';
+        ctx.fill();
+    }
+    
+    // Draw player's own snake
     drawSnake(nodes, 'purple');
+    
+    // Draw all other snakes
     for (var snakeID in snakePoints) {
         if (snakeID != id) {
             console.log(snakePoints[snakeID]);
