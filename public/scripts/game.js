@@ -5,6 +5,15 @@ var stat;
 var ctx;
 var id = "";
 
+stat = document.getElementById("status");
+canvas = document.getElementById("theCanvas");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+var w = canvas.width;
+var h = canvas.height;
+
+ctx = canvas.getContext("2d");
+
 
 var MAP_WIDTH = 6000; // px
 var MAP_HEIGHT = 6000; // px
@@ -16,19 +25,11 @@ var snakePoints = {}; // Other snakes
 var nodes = []; // My snake
 var centreX = 0;
 var centreY = 0;
-var mouseX = 0;
-var mouseY = 0;
+var mouseX = w/2;
+var mouseY = h/2;
 var food = [];
 var snakeHead = initSnake(5);
 
-stat = document.getElementById("status");
-canvas = document.getElementById("theCanvas");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-var w = canvas.width;
-var h = canvas.height;
-
-ctx = canvas.getContext("2d");
 
 socket.on('init', function(msg) {
 	console.log("ID RECEIVED: " + msg.id);
