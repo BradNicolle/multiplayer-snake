@@ -6,12 +6,20 @@ var ctx;
 var id = "";
 
 
+var MAP_WIDTH = 6000; // px
+var MAP_HEIGHT = 6000; // px
 var SEG_LEN = 100; // px
 var FOOD_RADIUS = 10; // px
+var GRID_DIV = 50; // px
+var PAN_RATE = 10; // px/frame
 var snakePoints = {}; // Other snakes
 var nodes = []; // My snake
+var centreX = 0;
+var centreY = 0;
+var mouseX = 0;
+var mouseY = 0;
 var food = [];
-initSnake(5);
+var snakeHead = initSnake(5);
 
 stat = document.getElementById("status");
 canvas = document.getElementById("theCanvas");
@@ -38,7 +46,7 @@ socket.on('food', function(msg) {
 
 socket.on('grow', function(msg) {
     var lastNode = nodes[nodes.length - 1];
-    nodes.push(new Point(lastNode.x, lastNode.y));
+    nodes.push(new Point(lastNode.x+1, lastNode.y+1));
 });
 
 
@@ -53,6 +61,7 @@ function initSnake(len) {
     for (var i = 0; i < len; i++) {
         nodes.push(new Point(0, i*SEG_LEN));
     }
+    return nodes[0];
 }
 
 function mouseHandler(event) {
@@ -65,10 +74,18 @@ function touchHandler(event) {
 }
 
 function moveHandler(x, y) {
+    mouseX = x;
+    mouseY = y;
     // Offset for translated canvas origin
-    nodes[0].x = x - w/2;
-    nodes[0].y = y - h/2;
+    x = x - w/2;
+    y = y - h/2;
     
+    recalcSnake();
+}
+
+function recalcSnake() {
+    snakeHead.x = mouseX - w/2 + centreX;
+    snakeHead.y = mouseY - h/2 + centreY;
     // Move each point SEG_LEN px away from preceding point in direction of unit vector
     for (var i = 1; i < nodes.length; i++) {
         var diffX = nodes[i-1].x - nodes[i].x;
@@ -79,7 +96,7 @@ function moveHandler(x, y) {
     }
     
     // Send new head location to the server
-    socket.emit('mousePos', nodes[0]);
+    socket.emit('mousePos', snakeHead);
 }
 
 function drawStuff() {
@@ -88,6 +105,32 @@ function drawStuff() {
     
     ctx.clearRect(0, 0, w, h);
     ctx.translate(w/2, h/2);
+    
+    // Draw grid
+    var gridOffsetX = centreX % GRID_DIV;
+    var gridOffsetY = centreY % GRID_DIV;
+    ctx.translate(-gridOffsetX, -gridOffsetY);
+    ctx.beginPath();
+    for (var x = 0; x <= w/2; x+=GRID_DIV) {
+        ctx.moveTo(x, -h/2);
+        ctx.lineTo(x, h/2);
+        ctx.moveTo(-x, -h/2);
+        ctx.lineTo(-x, h/2);
+    }
+    for (var y = 0; y <= h/2; y+=GRID_DIV) {
+        ctx.moveTo(-w/2, y);
+        ctx.lineTo(w/2, y);
+        ctx.moveTo(-w/2, -y);
+        ctx.lineTo(w/2, -y);
+    }
+    
+    ctx.strokeStyle = '#ddd';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.translate(gridOffsetX, gridOffsetY)
+    
+    // Translate for snake's local viewpoint
+    ctx.translate(-centreX, -centreY);
     
     // Draw all food
     for (var i = 0; i < food.length; i++) {
@@ -107,6 +150,8 @@ function drawStuff() {
             drawSnake(snakePoints[snakeID], 'red');
         }
     }
+    
+    ctx.translate(centreX, centreY);
     
     ctx.translate(-w/2, -h/2);
 }
@@ -134,11 +179,28 @@ function drawSnake(points, colour) {
 }
 
 function updateStatus() {
-    stat.innerText = "LENGTH: " + nodes.length;
+    stat.innerText = "Length: " + nodes.length + "\nX: " + centreX + "\nY: " + centreY;
 }
 
 function animLoop() {
     requestAnimationFrame(animLoop);
+    
+    // Check if mouse is on edges
+    if (mouseX < 0.1*w) {
+        centreX -= PAN_RATE;
+    }
+    else if (mouseX > 0.9*w) {
+        centreX += PAN_RATE;
+    }
+    if (mouseY < 0.1*h) {
+        centreY -= PAN_RATE;
+    }
+    else if (mouseY > 0.9*h) {
+        centreY += PAN_RATE;
+    }
+    
+    recalcSnake();
+    
     drawStuff();
     updateStatus();
 }

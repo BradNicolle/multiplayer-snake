@@ -4,8 +4,8 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 
 // Constants
-var MAP_WIDTH = 1920;
-var MAP_HEIGHT = 1080;
+var MAP_WIDTH = 6000;
+var MAP_HEIGHT = 6000;
 var SEG_LEN = 100;
 var PERIOD = 40;
 var FOOD_FREQ = 5000; // Every 5 seconds on avg
@@ -47,8 +47,8 @@ io.on('connection', function(socket) {
         if (checkEaten(msg)) {
             var lastNode = nodes[nodes.length - 1];
             nodes.push({x: lastNode.x, y: lastNode.y});
-            io.emit('food', foodPoints);
             socket.emit('grow');
+            io.emit('food', foodPoints);
         }
         
         // Move each point SEG_LEN px away from preceding point in direction of unit vector
