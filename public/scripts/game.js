@@ -86,6 +86,7 @@ function moveHandler(x, y) {
 function recalcSnake() {
     snakeHead.x = mouseX - w/2 + centreX;
     snakeHead.y = mouseY - h/2 + centreY;
+
     // Move each point SEG_LEN px away from preceding point in direction of unit vector
     for (var i = 1; i < nodes.length; i++) {
         var diffX = nodes[i-1].x - nodes[i].x;
@@ -197,6 +198,20 @@ function animLoop() {
     }
     else if (mouseY > 0.9*h) {
         centreY += PAN_RATE;
+    }
+    
+    // Check view is within bounds
+    if (centreX > MAP_WIDTH/2) {
+        centreX = MAP_WIDTH/2;
+    }
+    else if (centreX < -MAP_WIDTH/2) {
+        centreX = -MAP_WIDTH/2;
+    }
+    if (centreY > MAP_HEIGHT/2) {
+        centreY = MAP_HEIGHT/2;
+    }
+    else if (centreY < -MAP_HEIGHT/2) {
+        centreY = -MAP_HEIGHT/2;
     }
     
     recalcSnake();

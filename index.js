@@ -46,7 +46,7 @@ io.on('connection', function(socket) {
         
         if (checkEaten(msg)) {
             var lastNode = nodes[nodes.length - 1];
-            nodes.push({x: lastNode.x, y: lastNode.y});
+            nodes.push({x: lastNode.x+1, y: lastNode.y+1});
             socket.emit('grow');
             io.emit('food', foodPoints);
         }
