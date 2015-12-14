@@ -133,6 +133,8 @@ io.on('connection', function(socket) {
             var lastNode = nodes[nodes.length - 1];
             nodes.push({x: lastNode.x+1, y: lastNode.y+1});
             socket.emit('grow');
+            var boxes = gameMap.getSurroundingGrids(msg, 1000);
+            socket.emit('food', boxes);
         }
         
         // Move each point SEG_LEN px away from preceding point in direction of unit vector
