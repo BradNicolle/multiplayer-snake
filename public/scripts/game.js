@@ -21,10 +21,11 @@ var SEG_LEN = 100; // px
 var FOOD_RADIUS = 10; // px
 var GRID_DIV = 50; // px
 var PAN_RATE = 10; // px/frame
+
 var snakePoints = {}; // Other snakes
 var nodes = []; // My snake
-var centreX = 0;
-var centreY = 0;
+var centreX = MAP_WIDTH/2;
+var centreY = MAP_HEIGHT/2;
 var mouseX = w/2;
 var mouseY = h/2;
 var food = [];
@@ -56,11 +57,16 @@ addEventListener("touchmove", touchHandler);
 
 animLoop();
 
+function startGame() {
+    document.getElementById("splash").style.display = "none";
+    animLoop();
+}
+
 
 function initSnake(len) {
     // Generate vertical snake of length 'len'
     for (var i = 0; i < len; i++) {
-        nodes.push(new Point(0, i*SEG_LEN));
+        nodes.push(new Point(MAP_WIDTH/2, i*SEG_LEN+MAP_HEIGHT/2));
     }
     return nodes[0];
 }
@@ -138,8 +144,11 @@ function drawStuff() {
     for (var i = 0; i < food.length; i++) {
         ctx.beginPath();
         ctx.arc(food[i].x, food[i].y, FOOD_RADIUS, 0, 2 * Math.PI, false);
-        ctx.fillStyle = 'green';
+        ctx.fillStyle = 'lightblue';
         ctx.fill();
+        ctx.lineWidth = FOOD_RADIUS/2;
+        ctx.strokeStyle = '#000033';
+        ctx.stroke();
     }
     
     // Draw player's own snake
@@ -188,31 +197,33 @@ function animLoop() {
     requestAnimationFrame(animLoop);
     
     // Check if mouse is on edges
-    if (mouseX < 0.1*w) {
-        centreX -= PAN_RATE;
-    }
-    else if (mouseX > 0.9*w) {
-        centreX += PAN_RATE;
-    }
-    if (mouseY < 0.1*h) {
-        centreY -= PAN_RATE;
-    }
-    else if (mouseY > 0.9*h) {
-        centreY += PAN_RATE;
+    if (document.hasFocus()) {
+        if (mouseX < 0.1*w) {
+            centreX -= PAN_RATE;
+        }
+        else if (mouseX > 0.9*w) {
+            centreX += PAN_RATE;
+        }
+        if (mouseY < 0.1*h) {
+            centreY -= PAN_RATE;
+        }
+        else if (mouseY > 0.9*h) {
+            centreY += PAN_RATE;
+        }
     }
     
     // Check view is within bounds
-    if (centreX > MAP_WIDTH/2) {
-        centreX = MAP_WIDTH/2;
+    if (centreX < 0) {
+        centreX = 0;
     }
-    else if (centreX < -MAP_WIDTH/2) {
-        centreX = -MAP_WIDTH/2;
+    else if (centreX > MAP_WIDTH) {
+        centreX = MAP_WIDTH;
     }
-    if (centreY > MAP_HEIGHT/2) {
-        centreY = MAP_HEIGHT/2;
+    if (centreY < 0) {
+        centreY = 0;
     }
-    else if (centreY < -MAP_HEIGHT/2) {
-        centreY = -MAP_HEIGHT/2;
+    else if (centreY > MAP_HEIGHT) {
+        centreY = MAP_HEIGHT;
     }
     
     recalcSnake();
